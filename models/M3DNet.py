@@ -1,3 +1,5 @@
+import sys
+sys.path.append("/data/cjj/projects/M3DNet")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -152,8 +154,8 @@ class M3DNet(nn.Module):
             raise Exception('User does not provide pan image!')
         N, ms_channels, h, w = ms.shape
         N, pan_channels, H, W = pan.shape
-        HR = upsample(ms, H, W)
-        S  = upsample(ms, H, W)
+        HR = F.interpolate(ms , size=(H,W), mode = "bilinear")
+        S = F.interpolate(ms , size=(H,W), mode = "bilinear")
         D = pan
         D = D.expand(-1, ms_channels, -1, -1)
         D = self.convert(D - HR)
@@ -164,3 +166,20 @@ class M3DNet(nn.Module):
         return HR
       
       
+if __name__ == "__main__":
+    torch.cuda.set_device(0)
+    # model = SpaChaPromptGenBlock(spatial_prompt_num=5,spectral_prompt_num=5,spatial_prompt_size=32,spectral_prompt_dim=64).cuda()
+    # feature = torch.rand(1,64,32,32).cuda()
+    # output = model(feature)
+    model = M3DNet(8,
+            1,
+            32,
+            4).cuda()
+
+    ms = torch.rand(1, 8, 32, 32).cuda()
+    lms = torch.rand(1, 8, 128, 128).cuda()
+    pan = torch.rand(1, 1, 128, 128).cuda()
+
+    output = model(ms,pan)
+    print("output: ",output.shape)
+    print(sum(p.numel() for p in model.parameters() )/1e6, "M") 
